@@ -77,7 +77,6 @@
 
         // --- Sound & Effect ---
         const playWinEffect = () => {
-            // 1. Sound
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (AudioContext) {
                 try {
@@ -107,29 +106,13 @@
                     }, 150);
                 } catch(e) {}
             }
-
-            // 2. Confetti Celebration
             if (typeof confetti === 'function') {
                 const duration = 3000;
                 const end = Date.now() + duration;
                 (function frame() {
-                    confetti({
-                        particleCount: 5,
-                        angle: 60,
-                        spread: 55,
-                        origin: { x: 0 },
-                        colors: ['#fbbf24', '#f59e0b', '#ef4444', '#3b82f6']
-                    });
-                    confetti({
-                        particleCount: 5,
-                        angle: 120,
-                        spread: 55,
-                        origin: { x: 1 },
-                        colors: ['#fbbf24', '#f59e0b', '#ef4444', '#3b82f6']
-                    });
-                    if (Date.now() < end) {
-                        requestAnimationFrame(frame);
-                    }
+                    confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#fbbf24', '#f59e0b', '#ef4444', '#3b82f6'] });
+                    confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#fbbf24', '#f59e0b', '#ef4444', '#3b82f6'] });
+                    if (Date.now() < end) requestAnimationFrame(frame);
                 }());
             }
         };
@@ -158,6 +141,8 @@
             Share: (props) => <Icon {...props} path={<><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></>} />,
             Camera: (props) => <Icon {...props} path={<><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></>} />,
             X: (props) => <Icon {...props} path={<><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>} />,
+            Sparkles: (props) => <Icon {...props} path={<><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></>} />,
+            Bot: (props) => <Icon {...props} path={<><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></>} />,
         };
 
         function App() {
@@ -298,6 +283,7 @@
                             rear3_2: run3rear?.number?.[1] || '',
                             prize2: p2?.number || Array(5).fill(''),
                             prize3: p3?.number || Array(10).fill(''),
+                            // Ensure it's an array before join
                             prize4: p4 && Array.isArray(p4.number) ? p4.number.join(' ') : '',
                             prize5: p5 && Array.isArray(p5.number) ? p5.number.join(' ') : '',
                             date: r.date
@@ -305,6 +291,10 @@
                         setLastUpdated(new Date());
                     }
                 } catch (e) { console.error("Fetch error", e); } finally { if (!silent) setIsLoadingAPI(false); }
+            };
+
+            const addLuckyNumber = (num) => {
+                addTicket(num);
             };
 
             // --- Handlers ---
@@ -422,6 +412,33 @@
                     return () => { try { scanner.clear(); } catch(e){} };
                 }
             }, [showScanner]);
+            
+            // --- News Feed Content Component for Reusability ---
+            const NewsFeedContent = () => (
+                <div className={`rounded-2xl shadow-lg border overflow-hidden ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                    <div className="p-4 bg-gradient-to-r from-orange-500 to-green-500 border-b border-slate-100 flex justify-between items-center">
+                        <h2 className="font-semibold flex items-center gap-2 text-slate-100 text-sm"><Icons.News className="w-4 h-4 text-white" /> ข่าวหวยล่าสุด</h2>
+                        <button onClick={fetchAllNews} className="text-white hover:text-slate-200"><Icons.RefreshCw className={`w-4 h-4 ${isLoadingNews ? 'animate-spin' : ''}`} /></button>
+                    </div>
+                    <div className="p-0">
+                        {newsError ? <div className="p-4 text-center text-sm text-red-400 flex flex-col items-center"><Icons.AlertTriangle className="w-6 h-6 mb-2 text-red-300" />โหลดข่าวไม่สำเร็จ</div> : newsItems.length === 0 ? <div className="p-4 text-center text-sm text-slate-400">{isLoadingNews ? 'กำลังโหลดข่าว...' : 'ไม่พบข้อมูลข่าว'}</div> : (
+                            <ul className="divide-y divide-slate-100 dark:divide-slate-700">
+                                {newsItems.map((item, idx) => (
+                                    <li key={idx} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                        <a href={item.link} target="_blank" rel="noopener noreferrer" className="block p-3">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${item.sourceColor} border-current bg-white dark:bg-slate-800`}>{item.sourceName}</span>
+                                                <span className="text-[10px] text-slate-400">{new Date(item.pubDate).toLocaleDateString('th-TH')}</span>
+                                            </div>
+                                            <div className={`text-sm font-medium line-clamp-2 leading-snug ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{item.title}</div>
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
+            );
 
             return (
                 <div className={`min-h-screen pb-24 transition-colors duration-300 ${darkMode ? 'dark bg-slate-900 text-slate-100' : 'bg-gray-50 text-slate-800'}`}>
@@ -479,11 +496,6 @@
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                {totalWins > 0 && (
-                                    <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white px-3 py-1 rounded-full font-bold shadow-lg animate-pulse border border-yellow-200/50">
-                                        <Icons.Trophy className="w-4 h-4" /> <span>ถูก {totalWins} ใบ</span>
-                                    </div>
-                                )}
                                 <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all">{darkMode ? <Icons.Sun className="w-5 h-5 text-yellow-300" /> : <Icons.Moon className="w-5 h-5" />}</button>
                             </div>
                         </div>
@@ -491,7 +503,7 @@
 
                     {/* Main Content */}
                     <main className="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6 mt-2">
-                        {/* Left: Input & List */}
+                        {/* Left Column: Tickets */}
                         <section className="lg:col-span-5 space-y-6">
                             <div className={`rounded-2xl shadow-lg border overflow-hidden sticky top-20 z-30 transition-colors ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
                                 <div className={`p-4 border-b flex justify-between items-center ${darkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50/80 border-slate-100'}`}>
@@ -580,28 +592,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <div className={`rounded-2xl shadow-lg border overflow-hidden ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
-                                <div className="p-4 bg-gradient-to-r from-orange-500 to-green-500 border-b border-slate-100 flex justify-between items-center">
-                                    <h2 className="font-semibold flex items-center gap-2 text-slate-100 text-sm"><Icons.News className="w-4 h-4 text-white" /> ข่าวหวยล่าสุด</h2>
-                                    <button onClick={fetchAllNews} className="text-white hover:text-slate-200"><Icons.RefreshCw className={`w-4 h-4 ${isLoadingNews ? 'animate-spin' : ''}`} /></button>
-                                </div>
-                                <div className="p-0">
-                                    {newsError ? <div className="p-4 text-center text-sm text-red-400 flex flex-col items-center"><Icons.AlertTriangle className="w-6 h-6 mb-2 text-red-300" />โหลดข่าวไม่สำเร็จ</div> : newsItems.length === 0 ? <div className="p-4 text-center text-sm text-slate-400">{isLoadingNews ? 'กำลังโหลดข่าว...' : 'ไม่พบข้อมูลข่าว'}</div> : (
-                                        <ul className="divide-y divide-slate-100 dark:divide-slate-700">
-                                            {newsItems.map((item, idx) => (
-                                                <li key={idx} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                                    <a href={item.link} target="_blank" rel="noopener noreferrer" className="block p-3">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${item.sourceColor} border-current bg-white dark:bg-slate-800`}>{item.sourceName}</span>
-                                                            <span className="text-[10px] text-slate-400">{new Date(item.pubDate).toLocaleDateString('th-TH')}</span>
-                                                        </div>
-                                                        <div className={`text-sm font-medium line-clamp-2 leading-snug ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{item.title}</div>
-                                                    </a>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
+                            
+                            {/* Desktop News (Hidden on mobile) */}
+                            <div className="hidden lg:block">
+                                <NewsFeedContent />
                             </div>
                         </section>
 
@@ -645,32 +639,14 @@
                                 </div>
                             </div>
                         </section>
+
+                        {/* Mobile News (Hidden on desktop) */}
+                        <section className="lg:hidden col-span-1">
+                            <NewsFeedContent />
+                        </section>
                     </main>
 
-                    {/* Share Modal */}
-                    {shareImg && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[fadeIn_0.2s]">
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-sm w-full shadow-2xl relative">
-                                <button onClick={() => setShareImg(null)} className="absolute top-2 right-2 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full"><Icons.X className="w-6 h-6" /></button>
-                                <h3 className="text-2xl font-bold mb-4 text-center text-slate-800 dark:text-white">🎉 ยินดีด้วยครับ!</h3>
-                                <img src={shareImg} alt="Winning Ticket" className="w-full rounded-xl shadow-lg border dark:border-slate-700" />
-                                <div className="text-center text-base text-slate-600 dark:text-slate-300 mt-4">กดค้างที่รูปเพื่อบันทึก หรือแชร์ให้เพื่อนดูเลย!</div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Scanner Modal */}
-                    {showScanner && (
-                        <div className="fixed inset-0 z-[60] bg-black flex flex-col">
-                             <div className="p-4 flex justify-between items-center text-white bg-black/50 absolute top-0 left-0 right-0 z-10">
-                                <span>สแกนบาร์โค้ดสลาก</span>
-                                <button onClick={() => setShowScanner(false)}><Icons.X className="w-8 h-8" /></button>
-                            </div>
-                            <div id="reader" className="flex-1 w-full h-full bg-black"></div>
-                        </div>
-                    )}
-                    
-                    {/* Mobile Floating Bar */}
+                    {/* Mobile Footer */}
                     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-slate-200 p-3 pb-safe shadow-2xl z-50">
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
